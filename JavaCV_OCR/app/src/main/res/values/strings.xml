@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">JavaCV_OCR</string>
+    <string name="name">姓名</string>
+    <string name="sex">性别</string>
+    <string name="address">地址</string>
+    <string name="mz">民族</string>
+    <string name="id_number">身份证号</string>
+    <string name="date_of_birth">出生日期</string>
+    <string name="issuing_authority">签发机关</string>
+    <string name="base_title_name">TitleName</string>
+</resources>

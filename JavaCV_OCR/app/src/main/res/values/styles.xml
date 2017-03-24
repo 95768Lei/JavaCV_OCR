@@ -1,0 +1,36 @@
+<resources>
+
+    <!-- Base application theme. -->
+    <style name="AppTheme" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <!-- Customize your theme here. -->
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+    </style>
+    <!--上传信息页图标样式-->
+    <style name="commit_icon_style">
+        <item name="android:layout_height">60px</item>
+        <item name="android:layout_width">60px</item>
+        <item name="android:layout_marginLeft">10px</item>
+        <item name="android:layout_marginTop">20px</item>
+        <item name="android:layout_marginRight">20px</item>
+    </style>
+
+    <!--上传信息页文本输入框样式-->
+    <style name="commit_edit_style">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">82px</item>
+        <item name="android:background">@drawable/commit_edit_shape</item>
+        <item name="android:layout_margin">10px</item>
+        <item name="android:paddingLeft">10px</item>
+        <item name="android:layout_toRightOf">@id/commit_name_icon</item>
+        <item name="android:textSize">@dimen/norm_size</item>
+    </style>
+
+    <!--RadioButton样式-->
+    <style name="rb_selector_type">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:button">@drawable/rb_bg_selector</item>
+    </style>
+</resources>

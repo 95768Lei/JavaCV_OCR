@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#dedcdc"
+    android:fillViewport="true"
+    android:fitsSystemWindows="true"
+    android:scrollbars="none">
+
+    <com.zhy.autolayout.AutoRelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:tools="http://schemas.android.com/tools"
+        android:id="@+id/activity_data_commit"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
+        tools:context="com.guangzong.zl.myapplication.UI.DataCommitActivity">
+
+        <include
+            android:id="@+id/commit_title"
+            layout="@layout/base_title_layout" />
+
+        <RelativeLayout
+            android:id="@+id/commit_rl"
+            android:layout_width="match_parent"
+            android:layout_height="420px"
+            android:layout_below="@id/commit_title"
+            android:background="@color/blue">
+
+            <ImageView
+                android:id="@+id/commit_icon"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="fitCenter"
+                android:src="@mipmap/add" />
+            
+        </RelativeLayout>
+
+        <ImageView
+            android:id="@+id/commit_name_icon"
+            style="@style/commit_icon_style"
+            android:layout_below="@id/commit_rl"
+            android:src="@mipmap/name" />
+
+        <EditText
+            android:id="@+id/commit_name_edit"
+            style="@style/commit_edit_style"
+            android:layout_below="@id/commit_rl"
+            android:hint="@string/name" />
+
+        <ImageView
+            android:id="@+id/commit_sex_icon"
+            style="@style/commit_icon_style"
+            android:layout_below="@id/commit_name_edit"
+            android:src="@mipmap/sex" />
+
+        <RadioGroup
+            android:id="@+id/commit_rg_sex"
+            android:layout_width="match_parent"
+            android:layout_height="82px"
+            android:layout_below="@id/commit_name_edit"
+            android:layout_margin="10px"
+            android:layout_toRightOf="@id/commit_sex_icon"
+            android:background="@drawable/commit_edit_shape"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <RadioButton
+                android:id="@+id/commit_rb_nan"
+                style="@style/rb_selector_type"
+                android:layout_marginLeft="8dp"
+                android:text="男" />
+
+            <RadioButton
+                android:id="@+id/commit_rb_nv"
+                style="@style/rb_selector_type"
+                android:layout_marginLeft="8dp"
+                android:text="女" />
+
+        </RadioGroup>
+
+        <ImageView
+            android:id="@+id/commit_mz_icon"
+            style="@style/commit_icon_style"
+            android:layout_below="@id/commit_rg_sex"
+            android:src="@mipmap/mz" />
+
+        <EditText
+            android:id="@+id/commit_mz_edit"
+            style="@style/commit_edit_style"
+            android:layout_height="82px"
+            android:layout_below="@id/commit_rg_sex"
+            android:hint="@string/mz" />
+
+        <ImageView
+            android:id="@+id/commit_address_icon"
+            style="@style/commit_icon_style"
+            android:layout_below="@id/commit_mz_edit"
+            android:src="@mipmap/address" />
+
+        <EditText
+            android:id="@+id/commit_address_edit"
+            style="@style/commit_edit_style"
+            android:layout_height="82px"
+            android:layout_below="@id/commit_mz_edit"
+            android:hint="@string/address" />
+
+        <ImageView
+            android:id="@+id/commit_date_icon"
+            style="@style/commit_icon_style"
+            android:layout_below="@id/commit_address_edit"
+            android:src="@mipmap/date" />
+
+        <TextView
+            android:id="@+id/commit_date_text"
+            style="@style/commit_edit_style"
+            android:layout_below="@id/commit_address_edit"
+            android:layout_toRightOf="@id/commit_date_icon"
+            android:gravity="center_vertical"
+            android:text="@string/date_of_birth"
+            android:textSize="32px" />
+
+        <ImageView
+            android:id="@+id/commit_number_icon"
+            style="@style/commit_icon_style"
+            android:layout_below="@id/commit_date_text"
+            android:src="@mipmap/id_number" />
+
+        <EditText
+            android:id="@+id/commit_number_edit"
+            style="@style/commit_edit_style"
+            android:layout_below="@id/commit_date_text"
+            android:hint="@string/id_number"
+            android:inputType="number" />
+
+        <ImageView
+            android:id="@+id/commit_jg_icon"
+            style="@style/commit_icon_style"
+            android:layout_below="@id/commit_number_edit"
+            android:src="@mipmap/jiguan" />
+
+        <EditText
+            android:id="@+id/commit_jg_edit"
+            style="@style/commit_edit_style"
+            android:layout_below="@id/commit_number_edit"
+            android:hint="@string/issuing_authority" />
+
+    </com.zhy.autolayout.AutoRelativeLayout>
+
+
+</ScrollView>

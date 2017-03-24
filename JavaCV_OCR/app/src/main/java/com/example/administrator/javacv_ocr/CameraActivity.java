@@ -8,7 +8,6 @@ import android.graphics.Rect;
 import android.graphics.YuvImage;
 import android.hardware.Camera;
 import android.os.Bundle;
-import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
@@ -19,6 +18,7 @@ import android.view.WindowManager;
 import android.widget.ImageView;
 import android.widget.Toast;
 
+import com.example.administrator.javacv_ocr.Utils.API;
 import com.zhy.autolayout.AutoRelativeLayout;
 
 import java.io.ByteArrayOutputStream;
@@ -26,6 +26,9 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+
+import static com.example.administrator.javacv_ocr.Utils.API.TESSDATA_PATH;
 
 /**
  * @author zhanglei
@@ -41,9 +44,8 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
     private SurfaceHolder holder;
     private Camera.AutoFocusCallback focusCallback;
     private Camera.PreviewCallback previewCallback;
-    //图片存储路径
-    private static final String image_file_path = Environment.getExternalStorageDirectory().getPath() + "/gz_file/";
-    public static final String image_path_name = image_file_path + "/image.JPG";
+    private ImageView km;
+
     public static final int CAMERA_CODE = 4;
     private Handler handler = new Handler() {
         @Override
@@ -55,7 +57,7 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
             }
         }
     };
-    private ImageView km;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -74,6 +76,8 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
             return;
         }
 
+        //将训练的文件写入到本地
+        write();
         initListener();
 
     }
@@ -154,7 +158,7 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
             e.printStackTrace();
         }
 
-        File file = new File(image_file_path);
+        File file = new File(API.image_file_path);
         if (!file.exists()) {
             file.mkdirs();
         }
@@ -171,7 +175,7 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
         //创建一个文件流将拍的照片存储到本地
         FileOutputStream fos = null;
         try {
-            fos = new FileOutputStream(image_path_name);
+            fos = new FileOutputStream(API.image_path_name);
             fos.write(tmp);
             fos.flush();
         } catch (FileNotFoundException e) {
@@ -291,6 +295,39 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
                     }
                 });
                 break;
+        }
+    }
+
+    /**
+     * 将训练文件储存到本地
+     */
+    private void write() {
+        InputStream inputStream;
+        try {
+            inputStream = getResources().getAssets().open("id.traineddata");
+            File file = new File(TESSDATA_PATH);
+            if (!file.exists()) {
+                file.mkdirs();
+            }
+
+            File file1 = new File(TESSDATA_PATH + "/id.traineddata");
+            //检查训练文件是否存在（存在就返回，不存在就将训练文件存储起来）
+            if (file1.exists()) {
+                return;
+            }
+            FileOutputStream fileOutputStream = new FileOutputStream(
+                    TESSDATA_PATH + "/id.traineddata");
+            byte[] buffer = new byte[512];
+            int count = 0;
+            while ((count = inputStream.read(buffer)) > 0) {
+                fileOutputStream.write(buffer, 0, count);
+            }
+            fileOutputStream.flush();
+            fileOutputStream.close();
+            inputStream.close();
+            System.out.println("success");
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 }

@@ -8,6 +8,7 @@ import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.support.v7.app.AlertDialog;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -18,9 +19,16 @@ import android.widget.PopupWindow;
 import android.widget.RadioGroup;
 import android.widget.TextView;
 
+import com.example.administrator.javacv_ocr.Utils.API;
+import com.example.administrator.javacv_ocr.Utils.IplImageUtils;
+import com.googlecode.tesseract.android.TessBaseAPI;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+
+import static com.example.administrator.javacv_ocr.Utils.API.DEFAULT_LANGUAGE;
+import static com.example.administrator.javacv_ocr.Utils.API.TESSBASE_PATH;
 
 /**
  * @author zhanglei
@@ -194,15 +202,75 @@ public class DataCommitActivity extends BaseActivity implements View.OnClickList
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == CameraActivity.CAMERA_CODE && resultCode == CameraActivity.CAMERA_CODE) {
             //从相机界面成功返回数据（数据已经被储存在固定的文件夹下，路径也是固定的直接去此路径下去拿出来就好）
-            Bitmap bitmap = BitmapFactory.decodeFile(CameraActivity.image_path_name);
+            final Bitmap bitmap = BitmapFactory.decodeFile(API.image_path_name);
             icon.setImageBitmap(bitmap);
             if (progressDialog == null) {
                 progressDialog = new ProgressDialog(mActivity);
             }
             progressDialog.setMessage("信息识别中...");
-//            progressDialog.show();
+            progressDialog.show();
+
+            new Thread() {
+                @Override
+                public void run() {
+                    //获取图片的宽高
+                    int width = bitmap.getWidth();
+                    int height = bitmap.getHeight();
+                    Log.e("bitmap", "width:" + width + "\nheight:" + height);
+                    //计算身份证号的位置
+                    int top = (int) (height * API.top_percent);
+                    int number_height = (int) (height * API.height_percent);
+                    //对图片进行裁剪(获取身份证号码区域)
+                    final Bitmap number_bitmap = IplImageUtils.TailorImage(bitmap, 0, top, width, number_height);
+                    //识别图像信息
+                    final String number = getTextUtf_8(number_bitmap);
+                    mActivity.runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            progressDialog.dismiss();
+                            icon.setImageBitmap(number_bitmap);
+                            if (!TextUtils.isEmpty(number)) {
+                                id_number.setText(number);
+                            } else {
+                                show("身份证号码读取失败");
+                            }
+                        }
+                    });
+                }
+            }.start();
         }
 
+    }
+
+    /**
+     * 获取识别出来的身份信息
+     *
+     * @param bitmap
+     */
+    private String getTextUtf_8(Bitmap bitmap) {
+        TessBaseAPI baseAPI = new TessBaseAPI();
+        String text = "";
+        boolean isInit = baseAPI.init(TESSBASE_PATH, DEFAULT_LANGUAGE);
+        if (isInit) {
+            baseAPI.setImage(bitmap);
+            String str = baseAPI.getUTF8Text();
+            Log.e("tag==", "读取的结果:" + str);
+            baseAPI.clear();
+            baseAPI.end();
+            //处理结果
+            if (str.length() >= 18) {
+                text = str.substring(str.length() - 18, str.length());
+            }
+//            //判断身份证的合法性
+//            if (!StringUtils.isIdentityNo(text)) {
+//                text = "";
+//            }
+        } else {
+            Log.e("tag==", "初始化失败..");
+            return "";
+        }
+
+        return text;
     }
 
     /**

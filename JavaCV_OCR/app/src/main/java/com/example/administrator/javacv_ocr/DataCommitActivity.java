@@ -6,6 +6,8 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.support.v7.app.AlertDialog;
 import android.text.TextUtils;
 import android.util.Log;
@@ -27,7 +29,13 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+
+import static com.example.administrator.javacv_ocr.Utils.API.DATA_NULL;
 import static com.example.administrator.javacv_ocr.Utils.API.DEFAULT_LANGUAGE;
+import static com.example.administrator.javacv_ocr.Utils.API.INIT_ERROR;
 import static com.example.administrator.javacv_ocr.Utils.API.TESSBASE_PATH;
 
 /**
@@ -59,6 +67,20 @@ public class DataCommitActivity extends BaseActivity implements View.OnClickList
     private static final String IMAGE_UNSPECIFIED = "image/*";
     private String issued_by;
     private EditText mz_edit;
+    //处理身份证识别时返回的消息
+    private Handler mHandler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what) {
+                case DATA_NULL:
+                    show("身份证号码读取失败");
+                    break;
+                case INIT_ERROR:
+                    show("身份证识别引擎初始化失败");
+                    break;
+            }
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -210,36 +232,64 @@ public class DataCommitActivity extends BaseActivity implements View.OnClickList
             progressDialog.setMessage("信息识别中...");
             progressDialog.show();
 
+            //开启线程获取身份证信息
             new Thread() {
                 @Override
                 public void run() {
-                    //获取图片的宽高
-                    int width = bitmap.getWidth();
-                    int height = bitmap.getHeight();
-                    Log.e("bitmap", "width:" + width + "\nheight:" + height);
-                    //计算身份证号的位置
-                    int top = (int) (height * API.top_percent);
-                    int number_height = (int) (height * API.height_percent);
-                    //对图片进行裁剪(获取身份证号码区域)
-                    final Bitmap number_bitmap = IplImageUtils.TailorImage(bitmap, 0, top, width, number_height);
-                    //识别图像信息
-                    final String number = getTextUtf_8(number_bitmap);
-                    mActivity.runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            progressDialog.dismiss();
-                            icon.setImageBitmap(number_bitmap);
-                            if (!TextUtils.isEmpty(number)) {
-                                id_number.setText(number);
-                            } else {
-                                show("身份证号码读取失败");
-                            }
-                        }
-                    });
+                    getPersonData(bitmap);
                 }
             }.start();
         }
 
+    }
+
+    /**
+     * 获取身份证上面的信息
+     *
+     * @param bitmap 要识别的身份证照片
+     */
+    private void getPersonData(Bitmap bitmap) {
+        //获取图片的宽高
+        int width = bitmap.getWidth();
+        int height = bitmap.getHeight();
+        //计算身份证号的位置
+        int number_top = (int) (height * API.top_percent);
+        int number_height = (int) (height * API.height_percent);
+        int number_left = (int) (width * API.left_percent);
+        int number_length = (int) (width * API.width_percent);
+        //对图片进行裁剪(获取身份证号码区域)
+        final Bitmap number_bitmap = IplImageUtils.TailorImage(bitmap, number_left, number_top, number_length, number_height);
+        //对图片进行储存
+        FileOutputStream fileOutputStream = null;
+        try {
+            fileOutputStream = new FileOutputStream(API.image_path_id_number);
+            number_bitmap.compress(Bitmap.CompressFormat.JPEG, 100, fileOutputStream);
+            fileOutputStream.flush();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        //识别图像信息
+        final String number = getTextUtf_8(number_bitmap);
+        if (!TextUtils.isEmpty(number)) {
+            id_number.setText(number);
+        } else {
+            mHandler.hasMessages(DATA_NULL);
+        }
+        mActivity.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                progressDialog.dismiss();
+                icon.setImageBitmap(number_bitmap);
+                if (!TextUtils.isEmpty(number)) {
+                    id_number.setText(number);
+                } else {
+
+                }
+            }
+        });
     }
 
     /**
@@ -248,25 +298,35 @@ public class DataCommitActivity extends BaseActivity implements View.OnClickList
      * @param bitmap
      */
     private String getTextUtf_8(Bitmap bitmap) {
-        TessBaseAPI baseAPI = new TessBaseAPI();
+        TessBaseAPI idApi = new TessBaseAPI();
         String text = "";
-        boolean isInit = baseAPI.init(TESSBASE_PATH, DEFAULT_LANGUAGE);
+        boolean isInit = idApi.init(TESSBASE_PATH, DEFAULT_LANGUAGE);
         if (isInit) {
-            baseAPI.setImage(bitmap);
-            String str = baseAPI.getUTF8Text();
+            idApi.setImage(bitmap);
+            //去除首尾空格
+            String str = idApi.getUTF8Text().trim();
+            String trim;
+            if (str.contains(" ")) {
+                trim = str.substring(0, str.lastIndexOf(" ")).trim();
+            } else {
+                trim = str;
+            }
             Log.e("tag==", "读取的结果:" + str);
-            baseAPI.clear();
-            baseAPI.end();
+            idApi.clear();
+            idApi.end();
             //处理结果
-            if (str.length() >= 18) {
-                text = str.substring(str.length() - 18, str.length());
+            if (trim.length() == 18) {
+                text = trim;
+            } else {
+                text = trim;
+
             }
 //            //判断身份证的合法性
 //            if (!StringUtils.isIdentityNo(text)) {
 //                text = "";
 //            }
         } else {
-            Log.e("tag==", "初始化失败..");
+            mHandler.hasMessages(INIT_ERROR);
             return "";
         }
 

@@ -78,6 +78,7 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
 
         //将训练的文件写入到本地
         write();
+        writeChi();
         initListener();
 
     }
@@ -317,6 +318,39 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
             }
             FileOutputStream fileOutputStream = new FileOutputStream(
                     TESSDATA_PATH + "/id.traineddata");
+            byte[] buffer = new byte[512];
+            int count = 0;
+            while ((count = inputStream.read(buffer)) > 0) {
+                fileOutputStream.write(buffer, 0, count);
+            }
+            fileOutputStream.flush();
+            fileOutputStream.close();
+            inputStream.close();
+            System.out.println("success");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * 将训练文件储存到本地
+     */
+    private void writeChi() {
+        InputStream inputStream;
+        try {
+            inputStream = getResources().getAssets().open("chi.traineddata");
+            File file = new File(TESSDATA_PATH);
+            if (!file.exists()) {
+                file.mkdirs();
+            }
+
+            File file1 = new File(TESSDATA_PATH + "/chi.traineddata");
+            //检查训练文件是否存在（存在就返回，不存在就将训练文件存储起来）
+            if (file1.exists()) {
+                return;
+            }
+            FileOutputStream fileOutputStream = new FileOutputStream(
+                    TESSDATA_PATH + "/chi.traineddata");
             byte[] buffer = new byte[512];
             int count = 0;
             while ((count = inputStream.read(buffer)) > 0) {

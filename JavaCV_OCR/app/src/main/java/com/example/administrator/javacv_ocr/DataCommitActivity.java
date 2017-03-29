@@ -32,10 +32,14 @@ import org.json.JSONObject;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
+import static com.example.administrator.javacv_ocr.Utils.API.CHINESE_LANGUAGE;
 import static com.example.administrator.javacv_ocr.Utils.API.DATA_NULL;
 import static com.example.administrator.javacv_ocr.Utils.API.DEFAULT_LANGUAGE;
 import static com.example.administrator.javacv_ocr.Utils.API.INIT_ERROR;
+import static com.example.administrator.javacv_ocr.Utils.API.NUMBER_READ_OK;
 import static com.example.administrator.javacv_ocr.Utils.API.TESSBASE_PATH;
 
 /**
@@ -45,7 +49,7 @@ import static com.example.administrator.javacv_ocr.Utils.API.TESSBASE_PATH;
  */
 public class DataCommitActivity extends BaseActivity implements View.OnClickListener {
 
-    private EditText name, address, id_number, jg_name;
+    private EditText person_name, address, id_number, jg_name;
     private View title;
     private ImageView back;
     private TextView title_name;
@@ -71,12 +75,19 @@ public class DataCommitActivity extends BaseActivity implements View.OnClickList
     private Handler mHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
+            Log.e("msg==", "handleMessage..");
             switch (msg.what) {
                 case DATA_NULL:
                     show("身份证号码读取失败");
+                    progressDialog.dismiss();
                     break;
                 case INIT_ERROR:
                     show("身份证识别引擎初始化失败");
+                    progressDialog.dismiss();
+                    break;
+                case NUMBER_READ_OK:
+                    show("身份证读取成功");
+                    progressDialog.dismiss();
                     break;
             }
         }
@@ -107,7 +118,7 @@ public class DataCommitActivity extends BaseActivity implements View.OnClickList
         title_name.setText("信息录入");
         icon1.setImageResource(R.mipmap.ok);
 
-        name = (EditText) findViewById(R.id.commit_name_edit);
+        person_name = (EditText) findViewById(R.id.commit_name_edit);
         icon = (ImageView) findViewById(R.id.commit_icon);
         date = (TextView) findViewById(R.id.commit_date_text);
         address = (EditText) findViewById(R.id.commit_address_edit);
@@ -174,7 +185,7 @@ public class DataCommitActivity extends BaseActivity implements View.OnClickList
             }).setPositiveButton("返回修改", new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
-
+                //meven
                 }
             }).show();
 
@@ -257,39 +268,87 @@ public class DataCommitActivity extends BaseActivity implements View.OnClickList
         int number_height = (int) (height * API.height_percent);
         int number_left = (int) (width * API.left_percent);
         int number_length = (int) (width * API.width_percent);
+
+        int name_top = (int) (height * API.name_top_percent);
+        int name_height = (int) (height * API.name_height_percent);
+        int name_left = (int) (width * API.name_left_percent);
+        int name_length = (int) (width * API.name_width_percent);
         //对图片进行裁剪(获取身份证号码区域)
         final Bitmap number_bitmap = IplImageUtils.TailorImage(bitmap, number_left, number_top, number_length, number_height);
-        //对图片进行储存
-        FileOutputStream fileOutputStream = null;
+        final Bitmap name_bitmap = IplImageUtils.TailorImage(bitmap, name_left, name_top, name_length, name_height);
+        //识别图像信息
+        final Map<String, String> map = getTextUtf_8(number_bitmap);
+        final String name = getName(name_bitmap);
+        //对裁剪后的图片进行储存
         try {
-            fileOutputStream = new FileOutputStream(API.image_path_id_number);
-            number_bitmap.compress(Bitmap.CompressFormat.JPEG, 100, fileOutputStream);
-            fileOutputStream.flush();
+            FileOutputStream outputStream = new FileOutputStream(API.image_path_id_number);
+            name_bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream);
+            outputStream.flush();
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-        //识别图像信息
-        final String number = getTextUtf_8(number_bitmap);
-        if (!TextUtils.isEmpty(number)) {
-            id_number.setText(number);
-        } else {
-            mHandler.hasMessages(DATA_NULL);
-        }
-        mActivity.runOnUiThread(new Runnable() {
+        //将识别后的信息显示在界面上
+        mHandler.post(new Runnable() {
             @Override
             public void run() {
-                progressDialog.dismiss();
-                icon.setImageBitmap(number_bitmap);
-                if (!TextUtils.isEmpty(number)) {
-                    id_number.setText(number);
-                } else {
 
+                if (map.size() >= 0) {
+                    try {
+                        String number = map.get(API.PERSON_NUMBER);
+                        String birthDay = map.get(API.PERSON_BIRTHDAY);
+                        String sex = map.get(API.PERSON_SEX);
+                        if (!TextUtils.isEmpty(number)) {
+                            id_number.setText(number);
+                        }
+                        if (!TextUtils.isEmpty(birthDay)) {
+                            date.setText(birthDay);
+                        }
+                        if (!TextUtils.isEmpty(sex)) {
+                            switch (sex) {
+                                case "男":
+                                    rg_sex.check(R.id.commit_rb_nan);
+                                    break;
+                                case "女":
+                                    rg_sex.check(R.id.commit_rb_nv);
+                                    break;
+                            }
+                        }
+                        if (!TextUtils.isEmpty(name)) {
+                            person_name.setText(name);
+                        }
+                    } catch (NullPointerException e) {
+
+                    }
                 }
             }
         });
+
+
+    }
+
+    /**
+     * 获取身份证中的姓名
+     *
+     * @param name_bitmap
+     */
+    private String getName(Bitmap name_bitmap) {
+        TessBaseAPI idApi = new TessBaseAPI();
+        boolean isInit = idApi.init(TESSBASE_PATH, CHINESE_LANGUAGE);
+        if (isInit) {
+            idApi.setImage(name_bitmap);
+            //去除首尾空格
+            String str = idApi.getUTF8Text().trim();
+            Log.e("tag==", "读取的结果:" + str);
+            idApi.clear();
+            idApi.end();
+            return str;
+        } else {
+            //OCR识别引擎初始化失败
+            mHandler.sendEmptyMessage(INIT_ERROR);
+        }
+        return null;
     }
 
     /**
@@ -297,9 +356,10 @@ public class DataCommitActivity extends BaseActivity implements View.OnClickList
      *
      * @param bitmap
      */
-    private String getTextUtf_8(Bitmap bitmap) {
+    private Map<String, String> getTextUtf_8(Bitmap bitmap) {
+        //用来储存识别出来的信息
+        Map<String, String> map = new HashMap<>();
         TessBaseAPI idApi = new TessBaseAPI();
-        String text = "";
         boolean isInit = idApi.init(TESSBASE_PATH, DEFAULT_LANGUAGE);
         if (isInit) {
             idApi.setImage(bitmap);
@@ -316,21 +376,35 @@ public class DataCommitActivity extends BaseActivity implements View.OnClickList
             idApi.end();
             //处理结果
             if (trim.length() == 18) {
-                text = trim;
-            } else {
-                text = trim;
+                //身份证号
+                map.put(API.PERSON_NUMBER, trim);
+                //性别
+                int sex = new Integer(trim.substring(16, 17));
+                if (sex % 2 == 0) {
+                    //女性
+                    map.put(API.PERSON_SEX, "女");
+                } else {
+                    //男性
+                    map.put(API.PERSON_SEX, "男");
+                }
+                //出生日期
+                String year = trim.substring(6, 10);
+                String month = trim.substring(10, 12);
+                String day = trim.substring(12, 14);
+                map.put(API.PERSON_BIRTHDAY, year.concat("-").concat(month).concat("-").concat(day));
+                //身份证读取成功，发送消息通知Handler身份证信息读取成功
+                mHandler.sendEmptyMessage(NUMBER_READ_OK);
 
+            } else {
+                //身份证读取失败，发送消息通知Handler身份证信息读取失败
+                mHandler.sendEmptyMessage(DATA_NULL);
             }
-//            //判断身份证的合法性
-//            if (!StringUtils.isIdentityNo(text)) {
-//                text = "";
-//            }
         } else {
-            mHandler.hasMessages(INIT_ERROR);
-            return "";
+            //OCR识别引擎初始化失败
+            mHandler.sendEmptyMessage(INIT_ERROR);
         }
 
-        return text;
+        return map;
     }
 
     /**
@@ -364,7 +438,7 @@ public class DataCommitActivity extends BaseActivity implements View.OnClickList
                         rg_sex.check(R.id.commit_rb_nan);
                     }
 
-                    name.setText(string_name);
+                    person_name.setText(string_name);
                     address.setText(string_address);
                     date.setText(string_date);
                     id_number.setText(string_number);
@@ -388,7 +462,7 @@ public class DataCommitActivity extends BaseActivity implements View.OnClickList
      */
     private boolean checkData() {
         //获取数据
-        string_name = name.getText().toString();
+        string_name = person_name.getText().toString();
         string_address = address.getText().toString();
         string_date = date.getText().toString();
         string_number = id_number.getText().toString();
